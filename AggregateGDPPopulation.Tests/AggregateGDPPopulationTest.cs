@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
+using System.Linq;
 
 namespace AggregateGDPPopulation.Tests
 {
@@ -27,17 +28,8 @@ namespace AggregateGDPPopulation.Tests
             }
             Dictionary<string, ContinentData> expected = JsonConvert.DeserializeObject<Dictionary<string, ContinentData>>(expectedContent);
 
-            foreach (var key in actual.Keys)
-            {
-                if (expected.ContainsKey(key))
-                {
-                    Assert.Equal(actual[key], expected[key]);
-                } else
-                {
-                    Assert.True(false);
-                }
-            }
-            
+            Assert.Equal(expected.Count, actual.Count);
+            Assert.True(expected.Keys.All(key => actual.ContainsKey(key) && expected[key].Equals(actual[key])));            
         }
     }
 }

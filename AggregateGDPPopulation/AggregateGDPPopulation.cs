@@ -10,10 +10,19 @@ namespace AggregateGDPPopulation
 {
     public class AggregateGDP
     {
+        // Stores the path to the mapper file.
         String mapperFilePath;
+
+        // Stores the path to the output file.
         String outputFilePath;
+
+        // Stores the header value for country name.
         String fieldCountryName;
+
+        // Stores the header value for GDP of 2012.
         String fieldGDP2012;
+
+        // Stores the header value for Population of 2012.
         String fieldPopulation2012;
         Dictionary<String, String> countryContinentMapper;
 
@@ -35,6 +44,9 @@ namespace AggregateGDPPopulation
            await WriteFile(outputFilePath, continentAggregateData);
         }
 
+        /**
+         * Method to read a file and call the calllback function with the data.
+         * */
         public async Task<Tresult> ReadFile<Tresult> (string filePath, Func<string, Tresult> processingCallback)
         {
             string content = "";
@@ -45,6 +57,9 @@ namespace AggregateGDPPopulation
             return processingCallback(content);
         }
 
+        /**
+         * Method to write a dictionary to a given output file.
+         * */
         public async Task WriteFile(string filePath, Dictionary<String, ContinentData> continentAggregateData)
         {
             if (!Directory.Exists(Environment.CurrentDirectory + @"/output")) { 
@@ -64,6 +79,9 @@ namespace AggregateGDPPopulation
             }
         }
 
+        /**
+         * Method to parse the mapper data.
+         * */
         public Dictionary<string, string> ParseMapper(string countryContinentJson)
         {
             Dictionary<string, string> mapper = new Dictionary<string, string>();
@@ -78,6 +96,9 @@ namespace AggregateGDPPopulation
             return mapper;
         }
 
+        /**
+         * Method to parse the csv and aggregate the data.
+         * */
         public Dictionary<string, ContinentData> AggregateContinentData(string csvString)
         {
             Dictionary<string, ContinentData> continentData = new Dictionary<string, ContinentData>();
