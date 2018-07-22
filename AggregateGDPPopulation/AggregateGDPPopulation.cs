@@ -39,22 +39,25 @@ namespace AggregateGDPPopulation
 
         public async Task AggregatePopulationAndGDPData(string filePath)
         {
-           countryContinentMapper = await ReadFile(mapperFilePath, ParseMapper);
-           Dictionary<string, ContinentData> continentAggregateData = await ReadFile(filePath, AggregateContinentData);
+           Task<string> mapperTask = ReadFile(mapperFilePath);
+           Task<string> csvParserTask = ReadFile(filePath);
+           await Task.WhenAll(mapperTask, csvParserTask);
+           countryContinentMapper = ParseMapper(mapperTask.Result);
+           Dictionary<string, ContinentData> continentAggregateData = AggregateContinentData(csvParserTask.Result);
            await WriteFile(outputFilePath, continentAggregateData);
         }
 
         /**
          * Method to read a file and call the calllback function with the data.
          * */
-        public async Task<Tresult> ReadFile<Tresult> (string filePath, Func<string, Tresult> processingCallback)
+        public async Task<string> ReadFile(string filePath)
         {
             string content = "";
             using (StreamReader reader = new StreamReader(filePath))
             {
                 content = await reader.ReadToEndAsync();
             }
-            return processingCallback(content);
+            return content;
         }
 
         /**
