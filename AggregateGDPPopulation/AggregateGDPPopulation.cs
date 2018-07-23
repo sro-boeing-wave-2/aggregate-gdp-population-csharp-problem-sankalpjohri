@@ -41,8 +41,9 @@ namespace AggregateGDPPopulation
         {
            Task<string> mapperTask = ReadFile(mapperFilePath);
            Task<string> csvParserTask = ReadFile(filePath);
-           await Task.WhenAll(mapperTask, csvParserTask);
+           await mapperTask;
            countryContinentMapper = ParseMapper(mapperTask.Result);
+           await csvParserTask;
            Dictionary<string, ContinentData> continentAggregateData = AggregateContinentData(csvParserTask.Result);
            await WriteFile(outputFilePath, continentAggregateData);
         }
