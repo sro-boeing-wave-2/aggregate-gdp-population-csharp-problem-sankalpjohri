@@ -34,6 +34,6 @@ namespace AggregateGDPPopulation
         public override int GetHashCode()
         {
             return base.GetHashCode();
-        }
+        }   
     }
 }

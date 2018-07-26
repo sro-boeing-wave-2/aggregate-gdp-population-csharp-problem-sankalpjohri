@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
+using AggregateGDPPopulation.Classes;
 using Newtonsoft.Json;
 
 namespace AggregateGDPPopulation
@@ -11,20 +12,22 @@ namespace AggregateGDPPopulation
     public class AggregateGDP
     {
         // Stores the path to the mapper file.
-        String mapperFilePath;
+        private readonly string mapperFilePath;
 
         // Stores the path to the output file.
-        String outputFilePath;
+        private readonly String outputFilePath;
 
         // Stores the header value for country name.
-        String fieldCountryName;
+        private readonly String fieldCountryName;
 
         // Stores the header value for GDP of 2012.
-        String fieldGDP2012;
+        private readonly String fieldGDP2012;
 
         // Stores the header value for Population of 2012.
-        String fieldPopulation2012;
-        Dictionary<String, String> countryContinentMapper;
+        private readonly String fieldPopulation2012;
+        private Dictionary<String, String> countryContinentMapper;
+
+        private readonly  FileUtils _fileUtils;
 
         public AggregateGDP()
         {
@@ -35,58 +38,25 @@ namespace AggregateGDPPopulation
             fieldGDP2012 = "GDP Billions (US Dollar) - 2012";
             fieldPopulation2012 = "Population (Millions) - 2012";
             countryContinentMapper = new Dictionary<String, String>();
+            _fileUtils = new FileUtils();
         }
 
         public async Task AggregatePopulationAndGDPData(string filePath)
         {
-           Task<string> mapperTask = ReadFile(mapperFilePath);
-           Task<string> csvParserTask = ReadFile(filePath);
-           await mapperTask;
-           countryContinentMapper = ParseMapper(mapperTask.Result);
-           await csvParserTask;
-           Dictionary<string, ContinentData> continentAggregateData = AggregateContinentData(csvParserTask.Result);
-           await WriteFile(outputFilePath, continentAggregateData);
-        }
-
-        /**
-         * Method to read a file and call the calllback function with the data.
-         * */
-        public async Task<string> ReadFile(string filePath)
-        {
-            string content = "";
-            using (StreamReader reader = new StreamReader(filePath))
-            {
-                content = await reader.ReadToEndAsync();
-            }
-            return content;
-        }
-
-        /**
-         * Method to write a dictionary to a given output file.
-         * */
-        public async Task WriteFile(string filePath, Dictionary<String, ContinentData> continentAggregateData)
-        {
-            if (!Directory.Exists(Environment.CurrentDirectory + @"/output")) { 
-                Directory.CreateDirectory(Environment.CurrentDirectory + @"/output");
-            }   
-            string content = JsonConvert.SerializeObject(continentAggregateData);
-            try
-            {
-                using (StreamWriter writer = new StreamWriter(filePath))
-                {
-                    await writer.WriteAsync(content);
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Exception while generating the output file: {0}", e.Message);
-            }
+            Task<string> mapperTask = _fileUtils.ReadFile(mapperFilePath);
+            Task<string> csvParserTask = _fileUtils.ReadFile(filePath);
+            await mapperTask;
+            countryContinentMapper = ParseMapper(mapperTask.Result);
+            await csvParserTask;
+            AggregatedData aggregatedData = new AggregatedData();
+            AggregateContinentData(csvParserTask.Result, aggregatedData);
+            await _fileUtils.WriteFile(outputFilePath, aggregatedData.SerializeData());
         }
 
         /**
          * Method to parse the mapper data.
          * */
-        public Dictionary<string, string> ParseMapper(string countryContinentJson)
+        private Dictionary<string, string> ParseMapper(string countryContinentJson)
         {
             Dictionary<string, string> mapper = new Dictionary<string, string>();
             try
@@ -97,15 +67,13 @@ namespace AggregateGDPPopulation
             {
                 Console.WriteLine("Error in parsing the mapper file: {}", e.Message);
             }
+
             return mapper;
         }
 
-        /**
-         * Method to parse the csv and aggregate the data.
-         * */
-        public Dictionary<string, ContinentData> AggregateContinentData(string csvString)
+        
+        private void AggregateContinentData(string csvString, AggregatedData aggregatedData)
         {
-            Dictionary<string, ContinentData> continentData = new Dictionary<string, ContinentData>();
             string[] csvRows = csvString.Replace("\"", String.Empty).Trim().Split('\n');
             string[] headers = csvRows[0].Split(',');
             int indexCountryName = Array.IndexOf(headers, fieldCountryName);
@@ -119,18 +87,14 @@ namespace AggregateGDPPopulation
                 {
                     countryName = countryContinentMapper[rowData[indexCountryName]];
                 }
+
                 if (!String.IsNullOrWhiteSpace(countryName))
                 {
                     string continentName = countryContinentMapper[rowData[indexCountryName]];
-                    if (!continentData.ContainsKey(continentName))
-                    {
-                        continentData.Add(continentName, new ContinentData());
-                    }
-                    continentData[continentName].GDP_2012 += float.Parse(rowData[indexGDP2012]);
-                    continentData[continentName].POPULATION_2012 += float.Parse(rowData[indexPopulation2012]);
+                    aggregatedData.AddOrUpdateData(continentName, float.Parse(rowData[indexGDP2012]),
+                        float.Parse(rowData[indexPopulation2012]));
                 }
             }
-            return continentData;
-        } 
+        }
     }
 }
